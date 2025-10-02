@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeEX - Time Tracking & Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <i class="fas fa-clock"></i>
+                <span>TimeEX</span>
+            </div>
+            <nav class="nav">
+                <a href="#dashboard" class="nav-link active" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a href="#reports" class="nav-link" data-section="reports">
+                    <i class="fas fa-chart-bar"></i> Reports
+                </a>
+                <a href="#account" class="nav-link" data-section="account">
+                    <i class="fas fa-user"></i> Account
+                </a>
+                <button class="logout-btn" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Login/Register Section -->
+        <section id="auth-section" class="auth-section">
+            <div class="auth-container">
+                <div class="auth-card">
+                    <h2>Welcome to TimeEX</h2>
+                    <p>Track your working hours efficiently</p>
+                    
+                    <div class="auth-tabs">
+                        <button class="tab-btn active" data-tab="login">Login</button>
+                        <button class="tab-btn" data-tab="register">Register</button>
+                    </div>
+
+                    <form id="loginForm" class="auth-form active">
+                        <div class="form-group">
+                            <label for="loginEmail">Email</label>
+                            <input type="email" id="loginEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </form>
+
+                    <form id="registerForm" class="auth-form">
+                        <div class="form-group">
+                            <label for="registerName">Full Name</label>
+                            <input type="text" id="registerName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerEmail">Email</label>
+                            <input type="email" id="registerEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword">Password</label>
+                            <input type="password" id="registerPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm Password</label>
+                            <input type="password" id="confirmPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Register</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+            <div class="container">
+                <div class="dashboard-header">
+                    <h1>Dashboard</h1>
+                    <div class="timeframe-selector">
+                        <label for="timeframe">Current Cycle:</label>
+                        <select id="timeframe">
+                            <option value="current">Current Cycle</option>
+                            <option value="previous">Previous Cycle</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                        <div id="customCycleSelector" class="custom-cycle-selector" style="display: none;">
+                            <div class="cycle-date-inputs">
+                                <div class="form-group">
+                                    <label for="cycleStartDate">Start Date:</label>
+                                    <input type="date" id="cycleStartDate">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cycleEndDate">End Date:</label>
+                                    <input type="date" id="cycleEndDate">
+                                </div>
+                                <button type="button" id="applyCustomCycle" class="btn btn-primary">Apply Cycle</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card summary-card">
+                        <h3>Cycle Summary</h3>
+                        <div class="summary-stats">
+                            <div class="stat">
+                                <span class="stat-value" id="totalHours">0h 0m</span>
+                                <span class="stat-label">Total Hours</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value" id="totalEntries">0</span>
+                                <span class="stat-label">Entries</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value" id="totalEarnings">$0.00</span>
+                                <span class="stat-label">Total Earnings</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value" id="avgDaily">0h 0m</span>
+                                <span class="stat-label">Avg Daily</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card timer-card">
+                        <h3>Time Tracker</h3>
+                        <div class="timer-display">
+                            <span id="timerDisplay">00:00:00</span>
+                        </div>
+                        <div class="timer-controls">
+                            <button id="startTimer" class="btn btn-success">
+                                <i class="fas fa-play"></i> Start
+                            </button>
+                            <button id="pauseTimer" class="btn btn-warning" disabled>
+                                <i class="fas fa-pause"></i> Pause
+                            </button>
+                            <button id="stopTimer" class="btn btn-danger" disabled>
+                                <i class="fas fa-stop"></i> Stop
+                            </button>
+                        </div>
+                        <div class="timer-project">
+                            <label for="currentProject">Project/Task:</label>
+                            <input type="text" id="currentProject" placeholder="Enter project or task name">
+                        </div>
+                        <div class="timer-rate">
+                            <label for="currentHourlyRate">Hourly Rate ($):</label>
+                            <input type="number" id="currentHourlyRate" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="timer-total">
+                            <label for="currentTotalAmount">Total Amount ($):</label>
+                            <input type="number" id="currentTotalAmount" step="0.01" min="0" readonly>
+                        </div>
+                    </div>
+
+                    <div class="card actions-card">
+                        <h3>Quick Actions</h3>
+                        <button id="manualEntryBtn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Manual Entry
+                        </button>
+                        <button id="downloadReportBtn" class="btn btn-secondary">
+                            <i class="fas fa-download"></i> Download Report
+                        </button>
+                    </div>
+                </div>
+
+                <div class="entries-section">
+                    <h3>Time Entries</h3>
+                    <div class="entries-table-container">
+                        <table class="entries-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Project/Task</th>
+                                    <th>Duration</th>
+                                    <th>Rate ($)</th>
+                                    <th>Total ($)</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="entriesTableBody">
+                                <!-- Entries will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reports Section -->
+        <section id="reports" class="section">
+            <div class="container">
+                <div class="reports-header">
+                    <h1>Reports</h1>
+                    <div class="reports-timeframe-selector">
+                        <label for="reportsTimeframe">Report Time Range:</label>
+                        <select id="reportsTimeframe">
+                            <option value="current">Current Cycle</option>
+                            <option value="previous">Previous Cycle</option>
+                            <option value="custom">Custom Range</option>
+                            <option value="all">All Time</option>
+                        </select>
+                        <div id="reportsCustomSelector" class="reports-custom-selector" style="display: none;">
+                            <div class="reports-date-inputs">
+                                <div class="form-group">
+                                    <label for="reportsStartDate">Start Date:</label>
+                                    <input type="date" id="reportsStartDate">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reportsEndDate">End Date:</label>
+                                    <input type="date" id="reportsEndDate">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reportsProjectFilter">Filter by Project:</label>
+                                    <select id="reportsProjectFilter">
+                                        <option value="">All Projects</option>
+                                    </select>
+                                </div>
+                                <button type="button" id="generateCustomReport" class="btn btn-primary">Generate Report</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="reports-grid">
+                    <div class="card">
+                        <h3>Report Summary</h3>
+                        <div id="reportSummary">
+                            <p>Select a time range to view report summary</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Time Entries</h3>
+                        <div id="reportEntries">
+                            <p>Select a time range to view detailed entries</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="reports-actions">
+                    <button id="downloadCustomReport" class="btn btn-primary" style="display: none;">
+                        <i class="fas fa-download"></i> Download Report
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Account Section -->
+        <section id="account" class="section">
+            <div class="container">
+                <h1>Account Settings</h1>
+                <div class="account-grid">
+                    <div class="card">
+                        <h3>Profile Information</h3>
+                        <form id="profileForm">
+                            <div class="form-group">
+                                <label for="profileName">Full Name</label>
+                                <input type="text" id="profileName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="profileEmail">Email</label>
+                                <input type="email" id="profileEmail" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Update Profile</button>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <h3>Privacy Settings</h3>
+                        <div class="privacy-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="dataRetention">
+                                <span class="checkmark"></span>
+                                Enable data retention (keep data for 2 years)
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="exportData">
+                                <span class="checkmark"></span>
+                                Allow data export
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Entry Modal -->
+    <div id="entryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Time Entry</h3>
+                <button class="close-btn" id="closeEntryModal">&times;</button>
+            </div>
+            <form id="entryForm">
+                <div class="form-group">
+                    <label for="entryDate">Date</label>
+                    <input type="date" id="entryDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="entryProject">Project/Task</label>
+                    <input type="text" id="entryProject" required>
+                </div>
+                <div class="form-group">
+                    <label for="entryDescription">Description</label>
+                    <textarea id="entryDescription" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="entryDuration">Duration (hours)</label>
+                    <input type="number" id="entryDuration" step="0.01" min="0" max="99" required>
+                </div>
+                <div class="form-group">
+                    <label for="entryHourlyRate">Hourly Rate ($)</label>
+                    <input type="number" id="entryHourlyRate" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="entryTotalAmount">Total Amount ($)</label>
+                    <input type="number" id="entryTotalAmount" step="0.01" min="0" readonly>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelEntry">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Entry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notifications" class="notifications"></div>
+
+    <script src="privacy.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
