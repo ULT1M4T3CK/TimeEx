@@ -869,7 +869,7 @@ class TimeTracker {
         
         return {
             id: `cycle-${startOfWeek.getFullYear()}-${startOfWeek.getMonth()}-${startOfWeek.getDate()}`,
-            name: `Cycle ${startOfWeek.toLocaleDateString()} - ${endOfWeek.toLocaleDateString()}`,
+            name: `Cycle ${this.formatDate(startOfWeek.toISOString().split('T')[0])} - ${this.formatDate(endOfWeek.toISOString().split('T')[0])}`,
             startDate: startOfWeek.toISOString().split('T')[0],
             endDate: endOfWeek.toISOString().split('T')[0]
         };
@@ -908,7 +908,7 @@ class TimeTracker {
         
         return {
             id: `cycle-${startOfPreviousWeek.getFullYear()}-${startOfPreviousWeek.getMonth()}-${startOfPreviousWeek.getDate()}`,
-            name: `Previous Cycle: ${startOfPreviousWeek.toLocaleDateString()} - ${endOfPreviousWeek.toLocaleDateString()}`,
+            name: `Previous Cycle: ${this.formatDate(startOfPreviousWeek.toISOString().split('T')[0])} - ${this.formatDate(endOfPreviousWeek.toISOString().split('T')[0])}`,
             startDate: startOfPreviousWeek.toISOString().split('T')[0],
             endDate: endOfPreviousWeek.toISOString().split('T')[0]
         };
@@ -940,7 +940,11 @@ class TimeTracker {
     }
 
     formatDate(dateString) {
-        return new Date(dateString).toLocaleDateString();
+        return new Date(dateString).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
     }
 
     formatCurrency(amount) {
