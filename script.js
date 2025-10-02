@@ -17,8 +17,17 @@ class TimeTracker {
 
     init() {
         this.setupEventListeners();
-        this.loadUserData();
-        this.updateDashboard();
+        
+        // Initialize demo data for GitHub Pages
+        this.initializeDemoData();
+        
+        // Check for existing session first
+        if (!this.checkExistingSession()) {
+            this.showAuthSection();
+        } else {
+            this.loadUserData();
+            this.updateDashboard();
+        }
     }
 
     setupEventListeners() {
@@ -94,6 +103,7 @@ class TimeTracker {
                 this.showNotification('Invalid credentials', 'error');
             }
         } catch (error) {
+            console.error('Login error:', error);
             this.showNotification('Login failed. Please try again.', 'error');
         }
     }
@@ -121,10 +131,22 @@ class TimeTracker {
     }
 
     async authenticateUser(email, password) {
-        // Simulate API call - in real app, this would be a server request
-        const users = this.getStoredUsers();
-        const user = users.find(u => u.email === email && u.password === password);
-        return user ? { ...user, password: undefined } : null;
+        try {
+            // Simulate API call - in real app, this would be a server request
+            const users = this.getStoredUsers();
+            const user = users.find(u => u.email === email && u.password === password);
+            
+            if (user) {
+                // Store user session
+                const userSession = { ...user, password: undefined, loginTime: Date.now() };
+                localStorage.setItem('timeex_current_user', JSON.stringify(userSession));
+                return userSession;
+            }
+            return null;
+        } catch (error) {
+            console.error('Authentication error:', error);
+            return null;
+        }
     }
 
     async createUser(userData) {
@@ -141,12 +163,19 @@ class TimeTracker {
     }
 
     getStoredUsers() {
-        const stored = localStorage.getItem('timeex_users');
-        return stored ? JSON.parse(stored) : [];
+        try {
+            const stored = localStorage.getItem('timeex_users');
+            return stored ? JSON.parse(stored) : [];
+        } catch (error) {
+            console.error('Error reading stored users:', error);
+            return [];
+        }
     }
 
     logout() {
         this.currentUser = null;
+        // Clear user session
+        localStorage.removeItem('timeex_current_user');
         this.showAuthSection();
         this.showNotification('Logged out successfully', 'success');
     }
@@ -185,6 +214,54 @@ class TimeTracker {
         document.getElementById('auth-section').style.display = 'none';
         document.getElementById('dashboard').classList.add('active');
         this.updateDashboard();
+    }
+
+    // Check for existing session on page load
+    checkExistingSession() {
+        try {
+            const storedUser = localStorage.getItem('timeex_current_user');
+            if (storedUser) {
+                const user = JSON.parse(storedUser);
+                // Check if session is still valid (24 hours)
+                const sessionAge = Date.now() - (user.loginTime || 0);
+                const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
+                
+                if (sessionAge < maxSessionAge) {
+                    this.currentUser = user;
+                    this.showDashboard();
+                    return true;
+                } else {
+                    // Session expired
+                    localStorage.removeItem('timeex_current_user');
+                }
+            }
+        } catch (error) {
+            console.error('Session check error:', error);
+            localStorage.removeItem('timeex_current_user');
+        }
+        return false;
+    }
+
+    // Initialize demo data for GitHub Pages
+    initializeDemoData() {
+        try {
+            const users = this.getStoredUsers();
+            if (users.length === 0) {
+                // Create demo user
+                const demoUser = {
+                    id: 'demo-user-001',
+                    name: 'Demo User',
+                    email: 'demo@timeex.com',
+                    password: 'demo123',
+                    createdAt: new Date().toISOString()
+                };
+                users.push(demoUser);
+                localStorage.setItem('timeex_users', JSON.stringify(users));
+                console.log('Demo user created: demo@timeex.com / demo123');
+            }
+        } catch (error) {
+            console.error('Error initializing demo data:', error);
+        }
     }
 
     // Timer Methods
