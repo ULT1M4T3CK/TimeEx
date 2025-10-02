@@ -64,6 +64,10 @@ class TimeTracker {
         document.getElementById('entryDuration').addEventListener('input', () => this.calculateTotalAmount());
         document.getElementById('entryHourlyRate').addEventListener('input', () => this.calculateTotalAmount());
 
+        // Password visibility toggles
+        document.getElementById('showLoginPassword').addEventListener('change', () => this.togglePasswordVisibility('loginPassword'));
+        document.getElementById('showRegisterPassword').addEventListener('change', () => this.toggleRegisterPasswordVisibility());
+
         // Timeframe selector
         document.getElementById('timeframe').addEventListener('change', (e) => this.changeTimeframe(e));
         document.getElementById('applyCustomCycle').addEventListener('click', () => this.applyCustomCycle());
@@ -261,6 +265,32 @@ class TimeTracker {
             }
         } catch (error) {
             console.error('Error initializing demo data:', error);
+        }
+    }
+
+    // Password visibility toggle functions
+    togglePasswordVisibility(passwordFieldId) {
+        const passwordField = document.getElementById(passwordFieldId);
+        const checkbox = document.getElementById('showLoginPassword');
+        
+        if (checkbox.checked) {
+            passwordField.type = 'text';
+        } else {
+            passwordField.type = 'password';
+        }
+    }
+
+    toggleRegisterPasswordVisibility() {
+        const passwordField = document.getElementById('registerPassword');
+        const confirmPasswordField = document.getElementById('confirmPassword');
+        const checkbox = document.getElementById('showRegisterPassword');
+        
+        if (checkbox.checked) {
+            passwordField.type = 'text';
+            confirmPasswordField.type = 'text';
+        } else {
+            passwordField.type = 'password';
+            confirmPasswordField.type = 'password';
         }
     }
 
