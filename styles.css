@@ -39,6 +39,13 @@ body {
     font-weight: bold;
 }
 
+.logo-img {
+    height: 40px;
+    width: auto;
+    margin-right: 0.5rem;
+    object-fit: contain;
+}
+
 .logo i {
     margin-right: 0.5rem;
     font-size: 1.8rem;
@@ -118,6 +125,19 @@ body {
     border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     text-align: center;
+}
+
+.auth-logo {
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: center;
+}
+
+.auth-logo-img {
+    height: 80px;
+    width: auto;
+    object-fit: contain;
+    max-width: 200px;
 }
 
 .auth-card h2 {
@@ -886,6 +906,14 @@ body {
         justify-content: center;
     }
 
+    .logo-img {
+        height: 35px;
+    }
+
+    .auth-logo-img {
+        height: 60px;
+    }
+
     .dashboard-header {
         flex-direction: column;
         align-items: flex-start;
@@ -951,6 +979,14 @@ body {
 
     .entry-actions {
         flex-direction: column;
+    }
+
+    .logo-img {
+        height: 30px;
+    }
+
+    .auth-logo-img {
+        height: 50px;
     }
 }
 
