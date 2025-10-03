@@ -204,6 +204,11 @@ class TimeTracker {
         e.target.classList.add('active');
         document.getElementById(section).classList.add('active');
         
+        // Ensure header is visible when navigating
+        document.querySelector('.header').classList.remove('hidden');
+        // Remove full height class
+        document.querySelector('.main').classList.remove('full-height');
+        
         if (section === 'reports') {
             this.loadReports();
         }
@@ -212,11 +217,19 @@ class TimeTracker {
     showAuthSection() {
         document.getElementById('auth-section').style.display = 'flex';
         document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        // Hide header on login page
+        document.querySelector('.header').classList.add('hidden');
+        // Make main content full height
+        document.querySelector('.main').classList.add('full-height');
     }
 
     showDashboard() {
         document.getElementById('auth-section').style.display = 'none';
         document.getElementById('dashboard').classList.add('active');
+        // Show header when logged in
+        document.querySelector('.header').classList.remove('hidden');
+        // Remove full height class
+        document.querySelector('.main').classList.remove('full-height');
         this.updateDashboard();
     }
 
