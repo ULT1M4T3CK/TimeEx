@@ -9,6 +9,7 @@ A secure, mobile-friendly web application for tracking and managing working hour
 - **Manual Entry**: Add time entries manually with project/task details
 - **Two-Week Cycles**: Automatic cycle management with customizable timeframes
 - **Report Generation**: Automated CSV/PDF report generation for invoicing
+- **Long-term Storage**: File System Access API integration for automatic report archiving
 - **Mobile Responsive**: Optimized for all device sizes
 
 ### 🔐 Security & Privacy
@@ -69,9 +70,11 @@ A secure, mobile-friendly web application for tracking and managing working hour
 
 ### Data Management
 - **Local Storage**: All data stored securely in browser
+- **File System Archive**: Automatic report archiving to local folder
 - **Data Retention**: Automatic cleanup of old entries
 - **Export/Import**: Full data portability
-- **Backup Options**: Manual data backup capabilities
+- **Backup Options**: Manual and automatic data backup capabilities
+- **Archive History**: Track all archived reports with timestamps
 
 ### Privacy & Security
 - **No Server Required**: Complete client-side operation
@@ -122,6 +125,16 @@ TimeEX/
 2. Select a cycle from the list
 3. Click download button for CSV export
 4. Use exported data for invoicing
+
+### Setting Up Long-term Storage (Archive)
+1. Navigate to "Account" section
+2. Scroll to "Report Archive Settings"
+3. Click "Setup Archive Folder"
+4. Select a folder on your computer (e.g., Documents/TimeEX-Reports)
+5. All new reports will automatically be saved to this folder
+6. Use "Archive All Reports" to backup existing reports
+
+**Note:** This feature requires Chrome or Edge browser and uses the File System Access API for secure, user-controlled file storage.
 
 ## Privacy Policy
 

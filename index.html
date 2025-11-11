@@ -270,6 +270,9 @@
                     <button id="downloadCustomReport" class="btn btn-primary" style="display: none;">
                         <i class="fas fa-download"></i> Download Report
                     </button>
+                    <button id="viewArchivedBtn" class="btn btn-secondary">
+                        <i class="fas fa-history"></i> View Archived Reports
+                    </button>
                 </div>
             </div>
         </section>
@@ -306,6 +309,30 @@
                                 <span class="checkmark"></span>
                                 Allow data export
                             </label>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Report Archive Settings</h3>
+                        <p class="archive-description">Set up a folder on your computer to automatically save all reports as CSV files for long-term storage.</p>
+                        <div id="archiveStatus" class="archive-status-container">
+                            <div class="archive-status inactive">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span>No archive directory set up</span>
+                            </div>
+                        </div>
+                        <div class="archive-actions">
+                            <button id="setupArchiveBtn" class="btn btn-primary">
+                                <i class="fas fa-folder-open"></i> Setup Archive Folder
+                            </button>
+                            <button id="archiveAllBtn" class="btn btn-secondary">
+                                <i class="fas fa-archive"></i> Archive All Reports
+                            </button>
+                            <button id="disableArchiveBtn" class="btn btn-danger">
+                                <i class="fas fa-times"></i> Disable Archive
+                            </button>
+                        </div>
+                        <div class="archive-info">
+                            <p><strong>Note:</strong> This feature uses the File System Access API and works best in Chrome and Edge browsers. Reports will be saved as CSV files in your chosen folder.</p>
                         </div>
                     </div>
                 </div>

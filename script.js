@@ -27,6 +27,85 @@ class TimeTracker {
         } else {
             this.loadUserData();
             this.updateDashboard();
+            
+            // Setup auto-archive if previously configured
+            this.initializeAutoArchive();
+        }
+    }
+
+    async initializeAutoArchive() {
+        const archiveInfo = this.getArchiveInfo();
+        if (archiveInfo && archiveInfo.enabled) {
+            // Don't automatically restore the directory handle on load
+            // User will need to grant permission again if they want to use it
+            console.log('Archive directory was previously set up:', archiveInfo.name);
+            console.log('Click "Setup Archive Folder" to restore access');
+        }
+        
+        // Setup periodic check for auto-archiving (every hour)
+        this.setupPeriodicArchive();
+    }
+
+    setupPeriodicArchive() {
+        // Check once per hour if we should auto-archive
+        const oneHour = 60 * 60 * 1000;
+        
+        setInterval(async () => {
+            const archiveInfo = this.getArchiveInfo();
+            if (archiveInfo && archiveInfo.enabled && this.archiveDirHandle) {
+                console.log('Running periodic archive check...');
+                await this.checkAndArchiveNewReports();
+            }
+        }, oneHour);
+    }
+
+    async checkAndArchiveNewReports() {
+        try {
+            // Get all archived reports
+            const archived = this.getArchivedReports();
+            const archivedFilenames = new Set(archived.map(r => r.filename));
+            
+            // Get all cycles that have entries
+            const cycles = this.getAllCycles();
+            let newArchives = 0;
+            
+            for (const cycle of cycles) {
+                const entries = this.getCycleEntries(cycle);
+                if (entries.length > 0) {
+                    // Generate expected filename
+                    const filename = `timeex-report-${cycle.name.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '')}-`;
+                    
+                    // Check if this cycle has been archived (check if any filename starts with this)
+                    const isArchived = Array.from(archivedFilenames).some(f => f.startsWith(filename.substring(0, 30)));
+                    
+                    if (!isArchived) {
+                        // Archive this report
+                        const reportData = {
+                            cycle: cycle,
+                            entries: entries,
+                            summary: {
+                                totalHours: entries.reduce((sum, entry) => sum + entry.duration, 0),
+                                totalEntries: entries.length,
+                                totalEarnings: entries.reduce((sum, entry) => sum + (entry.totalAmount || 0), 0)
+                            }
+                        };
+                        
+                        const csv = this.generateCSV(reportData);
+                        const success = await this.autoArchiveReport(csv, cycle);
+                        
+                        if (success) {
+                            newArchives++;
+                        }
+                    }
+                }
+            }
+            
+            if (newArchives > 0) {
+                console.log(`Auto-archived ${newArchives} new report(s)`);
+                this.showNotification(`Auto-archived ${newArchives} new report(s)`, 'success');
+            }
+        } catch (error) {
+            console.error('Error during periodic archive check:', error);
         }
     }
 
@@ -82,6 +161,27 @@ class TimeTracker {
 
         // Profile form
         document.getElementById('profileForm').addEventListener('submit', (e) => this.updateProfile(e));
+
+        // Archive management
+        const setupArchiveBtn = document.getElementById('setupArchiveBtn');
+        if (setupArchiveBtn) {
+            setupArchiveBtn.addEventListener('click', () => this.setupArchiveDirectory());
+        }
+        
+        const archiveAllBtn = document.getElementById('archiveAllBtn');
+        if (archiveAllBtn) {
+            archiveAllBtn.addEventListener('click', () => this.archiveAllReports());
+        }
+        
+        const disableArchiveBtn = document.getElementById('disableArchiveBtn');
+        if (disableArchiveBtn) {
+            disableArchiveBtn.addEventListener('click', () => this.disableArchive());
+        }
+
+        const viewArchivedBtn = document.getElementById('viewArchivedBtn');
+        if (viewArchivedBtn) {
+            viewArchivedBtn.addEventListener('click', () => this.showArchivedReports());
+        }
 
         // Modal backdrop click
         document.getElementById('entryModal').addEventListener('click', (e) => {
@@ -231,6 +331,7 @@ class TimeTracker {
         // Remove full height class
         document.querySelector('.main').classList.remove('full-height');
         this.updateDashboard();
+        this.updateArchiveStatus();
     }
 
     // Check for existing session on page load
@@ -331,14 +432,14 @@ class TimeTracker {
         }
     }
 
-    stopTimer() {
+    async stopTimer() {
         if (this.timer.isRunning || this.timer.elapsed > 0) {
             this.timer.isRunning = false;
             this.timer.elapsed = Date.now() - this.timer.startTime;
             clearInterval(this.timer.interval);
             
             // Save the entry
-            this.saveTimerEntry();
+            await this.saveTimerEntry();
             
             // Reset timer
             this.timer.elapsed = 0;
@@ -373,7 +474,7 @@ class TimeTracker {
         document.getElementById('currentTotalAmount').value = totalAmount.toFixed(2);
     }
 
-    saveTimerEntry() {
+    async saveTimerEntry() {
         const project = document.getElementById('currentProject').value;
         const duration = this.timer.elapsed / 3600000; // Convert to hours
         const hourlyRate = parseFloat(document.getElementById('currentHourlyRate').value) || 0;
@@ -395,6 +496,11 @@ class TimeTracker {
             this.saveEntries();
             this.updateDashboard();
             this.showNotification('Time entry saved!', 'success');
+            
+            // Auto-archive if enabled
+            if (this.archiveDirHandle) {
+                await this.checkAndArchiveNewReports();
+            }
             
             // Clear inputs
             document.getElementById('currentProject').value = '';
@@ -432,7 +538,7 @@ class TimeTracker {
         document.getElementById('entryTotalAmount').value = totalAmount.toFixed(2);
     }
 
-    handleEntrySubmit(e) {
+    async handleEntrySubmit(e) {
         e.preventDefault();
         
         const entry = {
@@ -451,6 +557,11 @@ class TimeTracker {
         this.updateDashboard();
         this.closeEntryModal();
         this.showNotification('Entry added successfully!', 'success');
+        
+        // Auto-archive if enabled
+        if (this.archiveDirHandle) {
+            await this.checkAndArchiveNewReports();
+        }
     }
 
     // Dashboard Methods
@@ -710,8 +821,8 @@ class TimeTracker {
         document.getElementById('reportEntries').innerHTML = entriesHtml;
     }
 
-    downloadCustomReport(cycle) {
-        this.generateReport(cycle);
+    async downloadCustomReport(cycle) {
+        await this.generateReport(cycle);
     }
 
     showCycleDetails(cycleId) {
@@ -735,12 +846,12 @@ class TimeTracker {
         }
     }
 
-    downloadReport() {
+    async downloadReport() {
         const activeCycle = this.customCycle || this.currentCycle;
-        this.generateReport(activeCycle);
+        await this.generateReport(activeCycle);
     }
 
-    generateReport(cycle) {
+    async generateReport(cycle, useFileSystem = true) {
         const entries = this.getCycleEntries(cycle);
         const reportData = {
             cycle: cycle,
@@ -748,7 +859,8 @@ class TimeTracker {
             summary: {
                 totalHours: entries.reduce((sum, entry) => sum + entry.duration, 0),
                 totalEntries: entries.length,
-                avgDaily: entries.reduce((sum, entry) => sum + entry.duration, 0) / Math.max(1, this.getWorkingDaysInCycle(cycle))
+                avgDaily: entries.reduce((sum, entry) => sum + entry.duration, 0) / Math.max(1, this.getWorkingDaysInCycle(cycle)),
+                totalEarnings: entries.reduce((sum, entry) => sum + (entry.totalAmount || 0), 0)
             }
         };
         
@@ -760,10 +872,20 @@ class TimeTracker {
         const csv = this.generateCSV(reportData);
         console.log('Generated CSV content:', csv.substring(0, 200) + '...');
         
-        const filename = `timeex-report-${cycle.name.replace(/\s+/g, '-')}.csv`;
-        console.log('Downloading file:', filename);
+        const filename = `timeex-report-${cycle.name.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '')}.csv`;
+        console.log('Generating file:', filename);
         
-        this.downloadFile(csv, filename, 'text/csv');
+        // Use File System Access API if available and enabled
+        if (useFileSystem && window.showSaveFilePicker) {
+            await this.saveReportToFile(csv, filename);
+            
+            // Auto-archive if enabled
+            if (this.archiveDirHandle) {
+                await this.autoArchiveReport(csv, cycle);
+            }
+        } else {
+            this.downloadFile(csv, filename, 'text/csv');
+        }
     }
 
     generateCSV(data) {
@@ -855,6 +977,314 @@ class TimeTracker {
                 this.showNotification('Download not supported. Please check your browser settings.', 'error');
             }
         }
+    }
+
+    // File System Access API Methods for Long-term Storage
+    async saveReportToFile(content, filename) {
+        try {
+            // Check if File System Access API is supported
+            if (!window.showSaveFilePicker) {
+                console.log('File System Access API not supported, falling back to download');
+                this.downloadFile(content, filename, 'text/csv');
+                return;
+            }
+
+            // Request file save permission
+            const handle = await window.showSaveFilePicker({
+                suggestedName: filename,
+                types: [{
+                    description: 'CSV Files',
+                    accept: { 'text/csv': ['.csv'] }
+                }]
+            });
+            
+            const writable = await handle.createWritable();
+            await writable.write(content);
+            await writable.close();
+            
+            this.showNotification('Report saved to file successfully!', 'success');
+            
+            // Log the save for archive tracking
+            this.logArchivedReport(filename, handle);
+            
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('User cancelled file save');
+            } else {
+                console.error('File save error:', error);
+                this.showNotification('Failed to save file. Falling back to download.', 'warning');
+                this.downloadFile(content, filename, 'text/csv');
+            }
+        }
+    }
+
+    async setupArchiveDirectory() {
+        try {
+            // Check if File System Access API is supported
+            if (!window.showDirectoryPicker) {
+                this.showNotification('File System Access API not supported in this browser. Use Chrome or Edge.', 'error');
+                return false;
+            }
+
+            // Request directory permission
+            const dirHandle = await window.showDirectoryPicker({
+                mode: 'readwrite'
+            });
+            
+            // Store directory info (we can't store the handle directly in localStorage)
+            const archiveInfo = {
+                name: dirHandle.name,
+                setupDate: new Date().toISOString(),
+                enabled: true
+            };
+            
+            localStorage.setItem(`timeex_archive_info_${this.currentUser.id}`, JSON.stringify(archiveInfo));
+            this.archiveDirHandle = dirHandle;
+            
+            this.showNotification(`Archive directory set to: ${dirHandle.name}`, 'success');
+            this.updateArchiveStatus();
+            
+            return true;
+            
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('User cancelled directory selection');
+            } else {
+                console.error('Directory setup error:', error);
+                this.showNotification('Failed to set up archive directory', 'error');
+            }
+            return false;
+        }
+    }
+
+    async autoArchiveReport(reportData, cycle) {
+        if (!this.archiveDirHandle) {
+            console.log('No archive directory set up');
+            return false;
+        }
+
+        try {
+            // Verify we still have permission
+            const permission = await this.archiveDirHandle.queryPermission({ mode: 'readwrite' });
+            if (permission !== 'granted') {
+                const newPermission = await this.archiveDirHandle.requestPermission({ mode: 'readwrite' });
+                if (newPermission !== 'granted') {
+                    this.showNotification('Archive permission denied. Please set up archive directory again.', 'warning');
+                    return false;
+                }
+            }
+
+            // Generate filename
+            const filename = `timeex-report-${cycle.name.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '')}-${Date.now()}.csv`;
+            
+            // Create or overwrite file in archive directory
+            const fileHandle = await this.archiveDirHandle.getFileHandle(filename, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(reportData);
+            await writable.close();
+            
+            console.log(`Report auto-archived: ${filename}`);
+            this.logArchivedReport(filename, fileHandle);
+            
+            return true;
+            
+        } catch (error) {
+            console.error('Auto-archive error:', error);
+            return false;
+        }
+    }
+
+    async archiveAllReports() {
+        if (!this.archiveDirHandle) {
+            const success = await this.setupArchiveDirectory();
+            if (!success) return;
+        }
+
+        try {
+            // Get all entries grouped by cycle
+            const allEntries = this.timeEntries;
+            const cycles = this.getAllCycles();
+            
+            let archivedCount = 0;
+            
+            for (const cycle of cycles) {
+                const entries = this.getCycleEntries(cycle);
+                if (entries.length > 0) {
+                    const reportData = {
+                        cycle: cycle,
+                        entries: entries,
+                        summary: {
+                            totalHours: entries.reduce((sum, entry) => sum + entry.duration, 0),
+                            totalEntries: entries.length,
+                            totalEarnings: entries.reduce((sum, entry) => sum + (entry.totalAmount || 0), 0)
+                        }
+                    };
+                    
+                    const csv = this.generateCSV(reportData);
+                    const success = await this.autoArchiveReport(csv, cycle);
+                    
+                    if (success) {
+                        archivedCount++;
+                    }
+                }
+            }
+            
+            this.showNotification(`Successfully archived ${archivedCount} report(s)!`, 'success');
+            
+        } catch (error) {
+            console.error('Archive all reports error:', error);
+            this.showNotification('Failed to archive all reports', 'error');
+        }
+    }
+
+    getAllCycles() {
+        // Get unique cycles from all entries
+        const cycles = new Set();
+        
+        // Add current and previous cycles
+        cycles.add(JSON.stringify(this.currentCycle));
+        cycles.add(JSON.stringify(this.getPreviousCycle()));
+        
+        // Generate cycles from all entry dates
+        this.timeEntries.forEach(entry => {
+            const entryDate = new Date(entry.date);
+            const cycleStart = new Date(entryDate);
+            cycleStart.setDate(entryDate.getDate() - entryDate.getDay());
+            
+            const cycleEnd = new Date(cycleStart);
+            cycleEnd.setDate(cycleStart.getDate() + 13);
+            
+            const cycle = {
+                id: `cycle-${cycleStart.getFullYear()}-${cycleStart.getMonth()}-${cycleStart.getDate()}`,
+                name: `Cycle ${this.formatDate(cycleStart.toISOString().split('T')[0])} - ${this.formatDate(cycleEnd.toISOString().split('T')[0])}`,
+                startDate: cycleStart.toISOString().split('T')[0],
+                endDate: cycleEnd.toISOString().split('T')[0]
+            };
+            
+            cycles.add(JSON.stringify(cycle));
+        });
+        
+        return Array.from(cycles).map(c => JSON.parse(c));
+    }
+
+    logArchivedReport(filename, fileHandle) {
+        try {
+            const archived = this.getArchivedReports();
+            archived.push({
+                filename: filename,
+                archivedAt: new Date().toISOString(),
+                userId: this.currentUser.id
+            });
+            
+            // Keep only last 100 archived reports in log
+            if (archived.length > 100) {
+                archived.splice(0, archived.length - 100);
+            }
+            
+            localStorage.setItem(`timeex_archived_reports_${this.currentUser.id}`, JSON.stringify(archived));
+        } catch (error) {
+            console.error('Error logging archived report:', error);
+        }
+    }
+
+    getArchivedReports() {
+        try {
+            const stored = localStorage.getItem(`timeex_archived_reports_${this.currentUser.id}`);
+            return stored ? JSON.parse(stored) : [];
+        } catch (error) {
+            console.error('Error reading archived reports:', error);
+            return [];
+        }
+    }
+
+    getArchiveInfo() {
+        try {
+            const stored = localStorage.getItem(`timeex_archive_info_${this.currentUser.id}`);
+            return stored ? JSON.parse(stored) : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    updateArchiveStatus() {
+        const archiveInfo = this.getArchiveInfo();
+        const statusEl = document.getElementById('archiveStatus');
+        
+        if (statusEl) {
+            if (archiveInfo && archiveInfo.enabled) {
+                statusEl.innerHTML = `
+                    <div class="archive-status active">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Archive Active: ${archiveInfo.name}</span>
+                        <span class="archive-date">Since: ${this.formatDate(archiveInfo.setupDate.split('T')[0])}</span>
+                    </div>
+                `;
+            } else {
+                statusEl.innerHTML = `
+                    <div class="archive-status inactive">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span>No archive directory set up</span>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    disableArchive() {
+        const archiveInfo = this.getArchiveInfo();
+        if (archiveInfo) {
+            archiveInfo.enabled = false;
+            localStorage.setItem(`timeex_archive_info_${this.currentUser.id}`, JSON.stringify(archiveInfo));
+        }
+        this.archiveDirHandle = null;
+        this.updateArchiveStatus();
+        this.showNotification('Archive disabled', 'success');
+    }
+
+    showArchivedReports() {
+        const archived = this.getArchivedReports();
+        
+        if (archived.length === 0) {
+            this.showNotification('No archived reports found', 'info');
+            return;
+        }
+        
+        // Create a modal or display area for archived reports
+        let html = `
+            <div class="archived-reports-list">
+                <h4>Archived Reports (${archived.length})</h4>
+                <table class="report-entries-table">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Archived Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        archived.reverse().forEach(report => {
+            html += `
+                <tr>
+                    <td>${report.filename}</td>
+                    <td>${this.formatDate(report.archivedAt.split('T')[0])} ${new Date(report.archivedAt).toLocaleTimeString()}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        // Display in the reports section
+        const reportSummary = document.getElementById('reportSummary');
+        if (reportSummary) {
+            reportSummary.innerHTML = html;
+        }
+        
+        this.showNotification(`Showing ${archived.length} archived report(s)`, 'success');
     }
 
     // Profile Methods
